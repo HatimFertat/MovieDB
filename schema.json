@@ -25,20 +25,20 @@
   },
   "moviedb.watchlist": {
     "transaction": true,
-    "partition-key": ["watchlistId"],
+    "partition-key": ["userId"],
+    "clustering-key": ["movieId"],
     "columns": {
-      "watchlistId": "INT",
-      "user_id": "INT",
-      "movie_id": "INT"
+      "userId": "INT",
+      "movieId": "INT"
     }
   },
   "moviedb.watched": {
     "transaction": true,
-    "partition-key": ["watchedId"],
+    "partition-key": ["userId"],
+    "clustering-key": ["movieId"],
     "columns": {
-      "watchedId": "INT",
-      "user_id": "INT",
-      "movie_id": "INT"
+      "userId": "INT",
+      "movieId": "INT"
     }
   },
   "moviedb.friends": {
@@ -51,4 +51,3 @@
     }
   }
 }
-
