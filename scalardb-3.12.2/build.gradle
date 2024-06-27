@@ -1,0 +1,100 @@
+buildscript {
+    repositories {
+        maven {
+            url 'https://plugins.gradle.org/m2/'
+        }
+    }
+    dependencies {
+        classpath 'com.diffplug.spotless:spotless-plugin-gradle:6.13.0'
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'eclipse'
+    apply plugin: 'idea'
+//    apply plugin: 'jacoco'
+    apply plugin: 'java-library-distribution'
+    apply plugin: 'com.diffplug.spotless'
+
+    project.version = '3.12.2'
+
+    ext {
+        guiceVersion = '5.1.0'
+        guavaVersion = '32.1.3-jre'
+        slf4jVersion = '1.7.36'
+        cassandraDriverVersion = '3.11.5'
+        azureCosmosVersion = '4.55.1'
+        jooqVersion = '3.14.16'
+        awssdkVersion = '2.24.0'
+        commonsDbcp2Version = '2.11.0'
+        mysqlDriverVersion = '8.0.33'
+        postgresqlDriverVersion = '42.7.2'
+        oracleDriverVersion = '21.11.0.0'
+        sqlserverDriverVersion = '11.2.3.jre8'
+        sqliteDriverVersion = '3.45.1.0'
+        grpcVersion = '1.60.0'
+        protobufVersion = '3.21.12'
+        annotationVersion = '1.3.2'
+        picocliVersion = '4.7.5'
+        scalarAdminVersion = '2.1.2'
+        dropwizardMetricsVersion = '4.2.25'
+        prometheusVersion = '0.16.0'
+        commonsTextVersion = '1.11.0'
+        jettyVersion = '9.4.53.v20231009'
+        junitVersion = '5.10.2'
+        commonsLangVersion = '3.14.0'
+        assertjVersion = '3.25.3'
+        mockitoVersion = '4.11.0'
+        spotbugsVersion = '4.8.3'
+        errorproneVersion = '2.10.0'
+        errorproneJavacVersion = '9+181-r4173-1'
+        gsonVersion = '2.10.1'
+        log4jVersion = '2.22.1'
+        stefanbirknerSystemLambdaVersion = '1.2.1'
+        spotbugsPluginVersion = '5.2.5'
+        errorpronePluginVersion = '2.0.2'
+        protobufPluginVersion = '0.8.19'
+        shadowPluginVersion = '7.1.2'
+        dockerPluginVersion = '0.34.0'
+        // Make JDK11+ use the same version as JDK8 uses
+        googleJavaFormatVersion = '1.7'
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    tasks.withType(Test) {
+        useJUnitPlatform()
+        testLogging.showStandardStreams = true
+    }
+
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+
+    group = "com.scalar-labs"
+
+    java {
+        withJavadocJar()
+        withSourcesJar()
+    }
+
+    javadoc {
+        if (JavaVersion.current().isJava9Compatible()) {
+            options.addBooleanOption('html5', true)
+        }
+    }
+
+    distZip {
+        duplicatesStrategy DuplicatesStrategy.EXCLUDE
+    }
+
+    distTar {
+        duplicatesStrategy DuplicatesStrategy.EXCLUDE
+    }
+
+    installDist {
+        duplicatesStrategy DuplicatesStrategy.EXCLUDE
+    }
+}
