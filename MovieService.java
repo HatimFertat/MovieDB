@@ -18,27 +18,41 @@ public class MovieService {
         return mapper.readTree(response);
     }
 
+    public static JsonNode searchMovies(String query) throws IOException, ClientProtocolException {
+        String url = TMDB_BASE_URL + "/search/movie?api_key=" + TMDB_API_KEY + "&query=" + query;
+        String response = Request.Get(url).execute().returnContent().asString();
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.readTree(response);
+    }
+
     public static void main(String[] args) {
         try {
             ScalarDBOperations.initialize();
-            int movieId = 550;  // Example movie ID
-            int userId = 1;     // Example user ID
-            JsonNode movieDetails = fetchMovieDetails(movieId);
+            if (args.length == 1) {
+                String query = args[0];
+                JsonNode searchResults = searchMovies(query);
+                System.out.println(searchResults);
+            } else if (args.length == 3) {
+                int userId = Integer.parseInt(args[0]);
+                int movieId = Integer.parseInt(args[1]);
+                String listName = args[2];
+                JsonNode movieDetails = fetchMovieDetails(movieId);
 
-            Map<String, String> movieDetailsMap = new HashMap<>();
-            movieDetailsMap.put("movieId", String.valueOf(movieDetails.get("id").asInt()));
-            movieDetailsMap.put("title", movieDetails.get("title").asText());
-            movieDetailsMap.put("release_date", movieDetails.get("release_date").asText());
-            movieDetailsMap.put("director", movieDetails.get("credits").get("crew").findValuesAsText("name").stream()
-                    .filter(role -> role.equals("Director")).findFirst().orElse("N/A"));
-            movieDetailsMap.put("cast", String.join(", ", movieDetails.get("credits").get("cast").findValuesAsText("name").subList(0, 5)));
-            movieDetailsMap.put("synopsis", movieDetails.get("overview").asText());
-            movieDetailsMap.put("genres", String.join(", ", movieDetails.get("genres").findValuesAsText("name")));
+                Map<String, String> movieDetailsMap = new HashMap<>();
+                movieDetailsMap.put("movieId", String.valueOf(movieDetails.get("id").asInt()));
+                movieDetailsMap.put("title", movieDetails.get("title").asText());
+                movieDetailsMap.put("release_date", movieDetails.get("release_date").asText());
+                movieDetailsMap.put("director", movieDetails.get("credits").get("crew").findValuesAsText("job").stream()
+                        .filter(job -> job.equals("Director")).findFirst().orElse("N/A"));
+                movieDetailsMap.put("cast", String.join(", ", movieDetails.get("credits").get("cast").findValuesAsText("name").subList(0, 5)));
+                movieDetailsMap.put("synopsis", movieDetails.get("overview").asText());
+                movieDetailsMap.put("genres", String.join(", ", movieDetails.get("genres").findValuesAsText("name")));
 
-            ScalarDBOperations.addMovieToList(userId, movieDetailsMap, "watchlist");
-            // ScalarDBOperations.addMovieToList(userId, movieDetailsMap, "watched");
+                ScalarDBOperations.addMovieToMoviesTable(movieDetailsMap);
+                ScalarDBOperations.addMovieToList(userId, Integer.parseInt(movieDetailsMap.get("movieId")), listName);
+            }
         } catch (Exception e) {
-            System.err.println("Error in MovieService: ");
+            System.err.println("Error in MovieService: " + e.getMessage());
         }
     }
 }

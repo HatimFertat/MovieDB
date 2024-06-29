@@ -49,5 +49,15 @@
       "userId": "INT",
       "friendId": "INT"
     }
+  },
+  "moviedb.friend_requests": {
+    "transaction": true,
+    "partition-key": ["requester_id"],
+    "clustering-key": ["requestee_id"],
+    "columns": {
+        "requester_id": "INT",
+        "requestee_id": "INT",
+        "status": "TEXT" 
+    }
   }
 }
