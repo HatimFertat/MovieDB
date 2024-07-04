@@ -1,0 +1,59 @@
+{
+  "moviedb.users": {
+    "transaction": true,
+    "partition-key": ["userId"],
+    "columns": {
+      "userId": "TEXT",
+      "password": "TEXT",
+      "email": "TEXT"
+    }
+  },
+  "moviedb.movies": {
+    "transaction": true,
+    "partition-key": ["movieId"],
+    "columns": {
+      "movieId": "INT",
+      "title": "TEXT",
+      "release_date": "TEXT",
+      "poster_path": "TEXT",
+      "genre_ids": "TEXT"
+    }
+  },
+  "moviedb.watchlist": {
+    "transaction": true,
+    "partition-key": ["userId"],
+    "clustering-key": ["movieId"],
+    "columns": {
+      "userId": "TEXT",
+      "movieId": "INT"
+    }
+  },
+  "moviedb.watched": {
+    "transaction": true,
+    "partition-key": ["userId"],
+    "clustering-key": ["movieId"],
+    "columns": {
+      "userId": "TEXT",
+      "movieId": "INT"
+    }
+  },
+  "moviedb.friends": {
+    "transaction": true,
+    "partition-key": ["userId"],
+    "clustering-key": ["friendId"],
+    "columns": {
+      "userId": "TEXT",
+      "friendId": "TEXT"
+    }
+  },
+  "moviedb.friend_requests": {
+    "transaction": true,
+    "partition-key": ["requester_id"],
+    "clustering-key": ["requestee_id"],
+    "columns": {
+        "requester_id": "TEXT",
+        "requestee_id": "TEXT",
+        "status": "TEXT" 
+    }
+  }
+}

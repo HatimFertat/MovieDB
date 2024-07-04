@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Movies</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="header">
+        <nav class="nav-left">
+            <button onclick="window.location.href='/profile'">Profile</button>
+            <button onclick="window.location.href='/watchlist'">Watchlist</button>
+            <button onclick="window.location.href='/watched'">Watched</button>
+            <button onclick="window.location.href='/search'">Search</button>
+        </nav>
+        <button class="sign-out" onclick="signOut()">Sign Out</button>
+    </div>
+    <div class="container">
+        <h1>Search Movies</h1>
+        <div class="form-container">
+            <form id="search-form">
+                <label for="query">Movie Title:</label>
+                <input type="text" id="query" name="query" required>
+                <br>
+                <label>Search Type:</label>
+                <div class="search-type-buttons">
+                    <button type="button" id="tmdb-search" class="search-type-btn active">TMDB</button>
+                    <button type="button" id="local-search" class="search-type-btn">Local</button>
+                </div>
+                <br>
+                <button type="submit">Search</button>
+            </form>
+        </div>
+        <div id="search-results">
+            <!-- Search results will be displayed here -->
+        </div>
+    </div>
+    <script src="/js/main.js"></script>
+</body>
+</html>

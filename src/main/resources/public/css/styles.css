@@ -1,0 +1,211 @@
+/* Basic styling for the body and common elements */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h1 {
+    color: #444;
+    margin-top: 20px;
+}
+
+form {
+    background: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    width: 100%; /* Adjusted width */
+    max-width: 500px; /* Set a maximum width */
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+    width: calc(100% - 22px); /* Adjusted width to include padding and border */
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+button {
+    background-color: #5cb85c;
+    color: #fff;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+button:hover {
+    background-color: #4cae4c;
+}
+
+/* Header and navigation button styling */
+.header {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background-color: #f8f9fa;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+.nav-left {
+    display: flex;
+    gap: 10px;
+    margin-left: 20px; /* Add space to the left edge */
+}
+
+.header .sign-out {
+    background-color: #dc3545;
+    margin-right: 20px; /* Add space to the right edge */
+}
+
+.header .sign-out:hover {
+    background-color: #c82333;
+}
+
+.container {
+    margin-top: 70px; /* Increase margin to prevent content overlap with the header */
+    width: 80%; /* Full width */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center items horizontally */
+}
+
+.form-container {
+    width: 100%;
+    max-width: 600px; /* Set a maximum width for the form */
+    display: flex;
+    justify-content: center;
+}
+
+/* Styling for movie display boxes */
+#watchlist, #watched, #search-results {
+    background: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    width: 100%; /* Make the elements wider */
+    margin-top: 20px;
+}
+
+.movie {
+    border-bottom: 1px solid #ccc;
+    padding: 10px 0;
+}
+
+.movie:last-child {
+    border-bottom: none;
+}
+
+.movie-title {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.movie-details {
+    font-size: 14px;
+    color: #666;
+}
+
+.movie-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 20px; /* Increase the gap between action buttons */
+}
+
+.movie-actions button {
+    background-color: #337ab7;
+    border: none;
+    padding: 5px 10px;
+    color: #fff;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.movie-actions button:hover {
+    background-color: #286090;
+}
+
+/* Search type buttons styling */
+.search-type-buttons {
+    display: flex;
+    gap: 10px; /* Add space between the buttons */
+    margin-bottom: 20px; /* Increase vertical spacing below the buttons */
+    justify-content: center; /* Center the search type buttons */
+}
+
+.search-type-btn {
+    padding: 10px 20px;
+    border: 1px solid #ccc;
+    background-color: #f0f0f0;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.search-type-btn.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.search-type-btn:hover {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.search-type-btn:focus {
+    outline: none;
+    box-shadow: 0 0 3px #007bff;
+}
+
+/* Error message styling */
+.error {
+    color: red;
+    margin-top: 10px;
+}
+
+/* Success message styling */
+.success-message {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border-radius: 5px;
+    z-index: 1000;
+}
+
+/* Error message styling */
+.error-message {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    padding: 10px;
+    background-color: #f44336;
+    color: white;
+    border-radius: 5px;
+    z-index: 1000;
+}
