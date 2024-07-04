@@ -31,23 +31,23 @@ public class MovieService {
         }
     }
 
-public JsonNode fetchMovieDetails(int movieId) throws IOException {
-    String url = TMDB_BASE_URL + "/movie/" + movieId + "?api_key=" + TMDB_API_KEY + "&append_to_response=credits";
-    String response = Request.Get(url).execute().returnContent().asString();
-    ObjectMapper mapper = new ObjectMapper();
-    JsonNode movieDetails = mapper.readTree(response);
+    public JsonNode fetchMovieDetails(int movieId) throws IOException {
+        String url = TMDB_BASE_URL + "/movie/" + movieId + "?api_key=" + TMDB_API_KEY + "&append_to_response=credits";
+        String response = Request.Get(url).execute().returnContent().asString();
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode movieDetails = mapper.readTree(response);
 
-    // Extract genre IDs
-    if (movieDetails.has("genres") && movieDetails.get("genres").isArray()) {
-        List<Integer> genreIds = new ArrayList<>();
-        for (JsonNode genre : movieDetails.get("genres")) {
-            genreIds.add(genre.get("id").asInt());
+        // Extract genre IDs
+        if (movieDetails.has("genres") && movieDetails.get("genres").isArray()) {
+            List<Integer> genreIds = new ArrayList<>();
+            for (JsonNode genre : movieDetails.get("genres")) {
+                genreIds.add(genre.get("id").asInt());
+            }
+            ((ObjectNode) movieDetails).put("genre_ids", mapper.writeValueAsString(genreIds));
         }
-        ((ObjectNode) movieDetails).put("genre_ids", mapper.writeValueAsString(genreIds));
-    }
 
-    return movieDetails;
-}
+        return movieDetails;
+    }
 
 
     public JsonNode searchTMDBMovies(String query) throws IOException {

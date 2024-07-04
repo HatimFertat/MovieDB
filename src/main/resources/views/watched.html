@@ -9,16 +9,20 @@
 <body>
     <div class="header">
         <nav class="nav-left">
+            <button onclick="window.location.href='/search'">Browse</button>
             <button onclick="window.location.href='/profile'">Profile</button>
             <button onclick="window.location.href='/watchlist'">Watchlist</button>
             <button onclick="window.location.href='/watched'">Watched</button>
-            <button onclick="window.location.href='/search'">Search</button>
         </nav>
+        <input type="text" id="user-search" placeholder="Search users...">
+        <button onclick="searchUsers()" id="user-search-btn">Search</button>
         <button class="sign-out" onclick="signOut()">Sign Out</button>
     </div>
     <div class="container">
-        <h1>Watched Movies</h1>
-        <div id="watched"></div>
+        <h1 id="watched-title">Watched Movies</h1>
+        <div id="watched">
+            <!-- Watched movies will be displayed here -->
+        </div>
     </div>
     <script src="/js/main.js"></script>
 </body>

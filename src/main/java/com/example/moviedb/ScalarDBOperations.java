@@ -5,6 +5,8 @@ import com.scalar.db.api.DistributedTransactionManager;
 import com.scalar.db.api.Get;
 import com.scalar.db.api.Scan;
 import com.scalar.db.api.Put;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.scalar.db.api.Delete;
 import com.scalar.db.api.Result;
 import com.scalar.db.exception.transaction.TransactionException;
@@ -236,66 +238,10 @@ public class ScalarDBOperations {
         
     //region search
 
-    public List<Map<String, String>> searchMovies(String query) throws TransactionException {
-        DistributedTransaction tx = manager.start();
-        try {
-            Scan scan = Scan.newBuilder()
-                .namespace(NAMESPACE)
-                .table("movies")
-                .all()
-                .build();
-    
-            List<Result> results = tx.scan(scan);
-            tx.commit();
-    
-            List<Map<String, String>> movies = results.stream()
-                .filter(result -> result.getText("title").toLowerCase().contains(query.toLowerCase()))
-                .map(result -> {
-                    Map<String, String> movieDetails = new HashMap<>();
-                    movieDetails.put("id", String.valueOf(result.getInt("movieId")));
-                    movieDetails.put("title", result.getText("title"));
-                    movieDetails.put("release_date", result.getText("release_date"));
-                    movieDetails.put("poster_path", result.getText("poster_path"));
-                    movieDetails.put("genre_ids", result.getText("genre_ids"));
-                    return movieDetails;
-                })
-                .collect(Collectors.toList());
-    
-            return movies;
-        } catch (Exception e) {
-            tx.rollback();
-            throw new TransactionException("Failed to search movies: ", e.getMessage());
-        }
-    }
+
 
     
-    public List<Map<String, String>> listMoviesInUserList(String userId, String listName) throws TransactionException {
-        DistributedTransaction tx = manager.start();
-        try {
-            // Retrieve the list of movie IDs from the user's watchlist or watched list
-            Scan scan = Scan.newBuilder()
-                .namespace(NAMESPACE)
-                .table(listName)
-                .partitionKey(Key.ofText("userId", userId))
-                .build();
-    
-            List<Result> results = tx.scan(scan);
-            tx.commit();
-    
-            List<Map<String, String>> movies = new ArrayList<>();
-            for (Result result : results) {
-                int movieId = result.getInt("movieId");
-                Map<String, String> movieDetails = getMovieDetails(movieId);
-                if (movieDetails != null) {
-                    movies.add(movieDetails);
-                }
-            }
-            return movies;
-        } catch (Exception e) {
-            tx.rollback();
-            throw new TransactionException("Failed to list movies in user list: ", e.getMessage());
-        }
-    }
+
     
     
     
@@ -392,6 +338,23 @@ public class ScalarDBOperations {
     public void sendFriendRequest(String requesterId, String requesteeId) throws TransactionException {
         DistributedTransaction tx = manager.start();
         try {
+            // Check if the friend request already exists
+            Get getRequest = Get.newBuilder()
+                .namespace(NAMESPACE)
+                .table("friend_requests")
+                .partitionKey(Key.ofText("requester_id", requesterId))
+                .clusteringKey(Key.ofText("requestee_id", requesteeId))
+                .build();
+    
+            Optional<Result> result = tx.get(getRequest);
+    
+            if (result.isPresent()) {
+                System.out.println("Friend request already exists");
+                tx.rollback();
+                return;
+            }
+    
+            // If the friend request does not exist, create a new one
             Put putRequest = Put.newBuilder()
                 .namespace(NAMESPACE)
                 .table("friend_requests")
@@ -410,6 +373,7 @@ public class ScalarDBOperations {
         }
     }
     
+    
     public void acceptFriendRequest(String requesterId, String requesteeId) throws TransactionException {
         DistributedTransaction tx = manager.start();
         try {
@@ -424,7 +388,7 @@ public class ScalarDBOperations {
             Optional<Result> result = tx.get(getRequest);
     
             if (result.isPresent() && "pending".equals(result.get().getText("status"))) {
-                // Add to friends tabl
+                // Add to friends table
                 Put putFriend1 = Put.newBuilder()
                     .namespace(NAMESPACE)
                     .table("friends")
@@ -441,18 +405,17 @@ public class ScalarDBOperations {
                     .build();
                 tx.put(putFriend2);
     
-                // Update friend request status to accepted
-                Put updateRequest = Put.newBuilder()
+                // Remove the friend request from friend_requests table
+                Delete deleteRequest = Delete.newBuilder()
                     .namespace(NAMESPACE)
                     .table("friend_requests")
                     .partitionKey(Key.ofText("requester_id", requesterId))
                     .clusteringKey(Key.ofText("requestee_id", requesteeId))
-                    .textValue("status", "accepted")
                     .build();
-                tx.put(updateRequest);
+                tx.delete(deleteRequest);
     
                 tx.commit();
-                System.out.println("Friend request accepted successfully");
+                System.out.println("Friend request accepted and users added as friends successfully");
             } else {
                 tx.rollback();
                 System.out.println("No pending friend request found to accept");
@@ -478,18 +441,17 @@ public class ScalarDBOperations {
             Optional<Result> result = tx.get(getRequest);
     
             if (result.isPresent() && "pending".equals(result.get().getText("status"))) {
-                // Update friend request status to declined
-                Put updateRequest = Put.newBuilder()
+                // Remove the friend request
+                Delete deleteRequest = Delete.newBuilder()
                     .namespace(NAMESPACE)
                     .table("friend_requests")
                     .partitionKey(Key.ofText("requester_id", requesterId))
                     .clusteringKey(Key.ofText("requestee_id", requesteeId))
-                    .textValue("status", "declined")
                     .build();
-                tx.put(updateRequest);
+                tx.delete(deleteRequest);
     
                 tx.commit();
-                System.out.println("Friend request declined successfully");
+                System.out.println("Friend request declined and removed successfully");
             } else {
                 tx.rollback();
                 System.out.println("No pending friend request found to decline");
@@ -500,6 +462,43 @@ public class ScalarDBOperations {
             System.out.println("Failed to decline friend request: " + e.getMessage());
         }
     }
+    
+    public void removeFriendRequest(String requesterId, String requesteeId) throws TransactionException {
+        DistributedTransaction tx = manager.start();
+        try {
+            // Check if the friend request exists
+            Get getRequest = Get.newBuilder()
+                .namespace(NAMESPACE)
+                .table("friend_requests")
+                .partitionKey(Key.ofText("requester_id", requesterId))
+                .clusteringKey(Key.ofText("requestee_id", requesteeId))
+                .build();
+    
+            Optional<Result> result = tx.get(getRequest);
+    
+            if (result.isPresent()) {
+                // Remove the friend request from the friend_requests table
+                Delete deleteRequest = Delete.newBuilder()
+                    .namespace(NAMESPACE)
+                    .table("friend_requests")
+                    .partitionKey(Key.ofText("requester_id", requesterId))
+                    .clusteringKey(Key.ofText("requestee_id", requesteeId))
+                    .build();
+                tx.delete(deleteRequest);
+    
+                tx.commit();
+                System.out.println("Friend request removed successfully");
+            } else {
+                tx.rollback();
+                System.out.println("No friend request found to remove");
+            }
+        } catch (Exception e) {
+            tx.rollback();
+            e.printStackTrace();
+            System.out.println("Failed to remove friend request: " + e.getMessage());
+        }
+    }
+    
 
     public void removeFriend(String userId, String friendId) throws TransactionException {
         DistributedTransaction tx = manager.start();
@@ -551,8 +550,35 @@ public class ScalarDBOperations {
         }
     }
     
-    public List<Map<String, String>> listAllFriends(String userId) throws TransactionException {
-        List<Map<String, String>> friends = new ArrayList<>();
+    public List<Map<String, String>> listMoviesInUserList(String userId, String listName) throws TransactionException {
+        DistributedTransaction tx = manager.start();
+        try {
+            // Retrieve the list of movie IDs from the user's watchlist or watched list
+            Scan scan = Scan.newBuilder()
+                .namespace(NAMESPACE)
+                .table(listName)
+                .partitionKey(Key.ofText("userId", userId))
+                .build();
+    
+            List<Result> results = tx.scan(scan);
+            tx.commit();
+    
+            List<Map<String, String>> movies = new ArrayList<>();
+            for (Result result : results) {
+                int movieId = result.getInt("movieId");
+                Map<String, String> movieDetails = getMovieDetails(movieId);
+                if (movieDetails != null) {
+                    movies.add(movieDetails);
+                }
+            }
+            return movies;
+        } catch (Exception e) {
+            tx.rollback();
+            throw new TransactionException("Failed to list movies in user list: ", e.getMessage());
+        }
+    }
+
+    public JsonNode listAllFriends(String userId) throws TransactionException {
         DistributedTransaction tx = manager.start();
         try {
             Scan scan = Scan.newBuilder()
@@ -562,48 +588,131 @@ public class ScalarDBOperations {
                 .build();
     
             List<Result> results = tx.scan(scan);
+
+            List<Map<String, String>> friends = new ArrayList<>();
             for (Result result : results) {
-                Map<String, String> friend = new HashMap<>();
-                friend.put("userId", String.valueOf(result.getInt("userId")));
-                friend.put("friendId", String.valueOf(result.getInt("movieId")));
-                friends.add(friend);
+                Map<String, String> friendDetails = new HashMap<>();
+                friendDetails.put("friendId", result.getText("friendId"));
+                friends.add(friendDetails);
+                
             }
-            tx.commit();
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.valueToTree(friends);
+
         } catch (Exception e) {
             tx.rollback();
             throw new TransactionException("Failed to list friends: ", e.getMessage());
         }
-        return friends;
-    }
-    
-    public List<Map<String, String>> listFriendRequests(String userId) throws TransactionException {
+    }    
+
+    public JsonNode listFriendRequests(String userId) throws TransactionException {
         List<Map<String, String>> friendRequests = new ArrayList<>();
         DistributedTransaction tx = manager.start();
         try {
-            Scan scan = Scan.newBuilder()
+            // Scan for requests sent by the user
+            Scan scanSent = Scan.newBuilder()
                 .namespace(NAMESPACE)
                 .table("friend_requests")
-                .indexKey(Key.ofText("requestee_id", userId))
+                .partitionKey(Key.ofText("requester_id", userId))
                 .build();
+            List<Result> resultsSent = tx.scan(scanSent);
+            for (Result result : resultsSent) {
+                Map<String, String> request = new HashMap<>();
+                request.put("requester_id", result.getText("requester_id"));
+                request.put("requestee_id", result.getText("requestee_id"));
+                request.put("status", result.getText("status"));
+                friendRequests.add(request);
+            }
     
-            List<Result> results = tx.scan(scan);
-            for (Result result : results) {
-                if ("pending".equals(result.getText("status"))) {
+            // Scan for requests received by the user
+            Scan scanReceived = Scan.newBuilder()
+                .namespace(NAMESPACE)
+                .table("friend_requests")
+                .all()
+                .build();
+            List<Result> resultsReceived = tx.scan(scanReceived);
+            for (Result result : resultsReceived) {
+                if (result.getText("requestee_id").equals(userId)) {
                     Map<String, String> request = new HashMap<>();
-                    request.put("requester_id", String.valueOf(result.getInt("requester_id")));
-                    request.put("requestee_id", String.valueOf(result.getInt("requestee_id")));
+                    request.put("requester_id", result.getText("requester_id"));
+                    request.put("requestee_id", result.getText("requestee_id"));
                     request.put("status", result.getText("status"));
                     friendRequests.add(request);
                 }
             }
+    
             tx.commit();
         } catch (Exception e) {
             tx.rollback();
-            throw new TransactionException("Failed to list friend requests: ", e.getMessage());
+            throw new TransactionException("Failed to list friend requests for " + userId, e.getMessage());
         }
-        return friendRequests;
+    
+        ObjectMapper mapper = new ObjectMapper();
+        return mapper.valueToTree(friendRequests);
     }
     
+
+
+    public JsonNode searchUsers(String query) throws TransactionException {
+        DistributedTransaction tx = manager.start();
+        try {
+            Scan scan = Scan.newBuilder()
+                .namespace(NAMESPACE)
+                .table("users")
+                .all()
+                .build();
+    
+            List<Result> results = tx.scan(scan);
+            tx.commit();
+
+            List<Map<String, String>> users = results.stream()
+                .filter(result -> result.getText("userId").toLowerCase().contains(query.toLowerCase()))
+                .map(result -> {
+                    Map<String, String> userDetails = new HashMap<>();
+                    userDetails.put("userId", result.getText("userId"));
+                    return userDetails;
+                })
+                .collect(Collectors.toList());
+
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.valueToTree(users);
+        } catch (Exception e) {
+            tx.rollback();
+            throw new TransactionException("Failed to search users: ", e.getMessage());
+        }
+    }
+    public List<Map<String, String>> searchMovies(String query) throws TransactionException {
+        DistributedTransaction tx = manager.start();
+        try {
+            Scan scan = Scan.newBuilder()
+                .namespace(NAMESPACE)
+                .table("movies")
+                .all()
+                .build();
+    
+            List<Result> results = tx.scan(scan);
+            tx.commit();
+    
+            List<Map<String, String>> movies = results.stream()
+                .filter(result -> result.getText("title").toLowerCase().contains(query.toLowerCase()))
+                .map(result -> {
+                    Map<String, String> movieDetails = new HashMap<>();
+                    movieDetails.put("id", String.valueOf(result.getInt("movieId")));
+                    movieDetails.put("title", result.getText("title"));
+                    movieDetails.put("release_date", result.getText("release_date"));
+                    movieDetails.put("poster_path", result.getText("poster_path"));
+                    movieDetails.put("genre_ids", result.getText("genre_ids"));
+                    return movieDetails;
+                })
+                .collect(Collectors.toList());
+    
+            return movies;
+        } catch (Exception e) {
+            tx.rollback();
+            throw new TransactionException("Failed to search movies: ", e.getMessage());
+        }
+    }
+
     //endregion
 
 

@@ -50,9 +50,55 @@ button {
     font-size: 16px;
 }
 
+.button-accept {
+    background-color: #5cb85c;
+    color: #fff;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 16px;
+    margin-right: 10px;
+
+}
+
+.button-red {
+    background-color: #dc3545;
+    color: #fff;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.button-blue {
+    background-color: #007bff;
+    color: white;
+    border-color: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 16px;
+    margin-right: 10px;
+}
+
+.button-accept:hover {
+    background-color: #4cae4c;
+}
+
 button:hover {
     background-color: #4cae4c;
 }
+
+.button-red:hover {
+    background-color: #c82333;
+}
+
+.button-blue:hover {
+    background-color: #0056b3;
+}
+
 
 /* Header and navigation button styling */
 .header {
@@ -71,16 +117,26 @@ button:hover {
 .nav-left {
     display: flex;
     gap: 10px;
-    margin-left: 20px; /* Add space to the left edge */
+    margin-left: 10px; /* Add space to the left edge */
 }
 
 .header .sign-out {
     background-color: #dc3545;
-    margin-right: 20px; /* Add space to the right edge */
+    margin-right: 10px; /* Add space to the right edge */
+    margin-left: 10px; /* Add space to the right edge */
 }
 
 .header .sign-out:hover {
     background-color: #c82333;
+}
+
+.header .nav-left button {
+    margin-right: 0px; /* Adjust the spacing as needed */
+}
+
+.header input[type="text"] {
+    margin-left: 10px; /* Adjust the spacing as needed */
+    margin-right: 10px; /* Add some spacing on the right */
 }
 
 .container {
@@ -109,7 +165,7 @@ button:hover {
 }
 
 .movie {
-    border-bottom: 1px solid #ccc;
+    border-bottom: 5px solid #ccc;
     padding: 10px 0;
 }
 
@@ -208,4 +264,9 @@ button:hover {
     color: white;
     border-radius: 5px;
     z-index: 1000;
+}
+
+/* Increase font size of names in pending requests and friends list */
+.user-id {
+    font-size: 18px; /* Increase the font size */
 }

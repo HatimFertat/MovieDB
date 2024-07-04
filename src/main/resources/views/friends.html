@@ -3,33 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile</title>
-    <link rel="stylesheet" href="/css/styles.css">
+    <title>Friends</title>
+    <link rel="stylesheet" href="/public/css/styles.css">
 </head>
 <body>
     <div class="header">
-        <nav class="nav-left">
-            <button onclick="window.location.href='/search'">Browse</button>
+        <nav>
             <button onclick="window.location.href='/profile'">Profile</button>
             <button onclick="window.location.href='/watchlist'">Watchlist</button>
-            <button onclick="window.location.href='/watched'">Watched</button>
+            <button onclick="window.location.href='/watched'">Watched Movies</button>
+            <button onclick="window.location.href='/search'">Search</button>
+            <button onclick="window.location.href='/friends'">Friends</button>
         </nav>
         <input type="text" id="user-search" placeholder="Search users...">
-        <button onclick="searchUsers()" id="user-search-btn">User Search</button>
-        <button class="sign-out" onclick="signOut()">Sign Out</button>
+        <button onclick="searchUsers()">Search</button>
+        <button onclick="signOut()">Sign Out</button>
     </div>
     <div class="container">
-        <h1>Profile</h1>
-        <div id="profile-info"></div>
+        <h1>Friends Management</h1>
+        
         <div id="friend-requests">
             <h2>Pending Friend Requests</h2>
             <div id="pending-requests"></div>
         </div>
+
         <div id="friends-list">
             <h2>Your Friends</h2>
             <div id="friends"></div>
         </div>
+        
+        <div id="user-search-results">
+            <h2>Search Results</h2>
+            <div id="search-results-users"></div>
+        </div>
     </div>
-    <script src="/js/main.js"></script>
+    <script src="/public/js/main.js"></script>
 </body>
 </html>

@@ -9,11 +9,13 @@
 <body>
     <div class="header">
         <nav class="nav-left">
+            <button onclick="window.location.href='/search'">Browse</button>
             <button onclick="window.location.href='/profile'">Profile</button>
             <button onclick="window.location.href='/watchlist'">Watchlist</button>
             <button onclick="window.location.href='/watched'">Watched</button>
-            <button onclick="window.location.href='/search'">Search</button>
         </nav>
+        <input type="text" id="user-search" placeholder="Search users...">
+        <button onclick="searchUsers()">Search</button>
         <button class="sign-out" onclick="signOut()">Sign Out</button>
     </div>
     <div class="container">

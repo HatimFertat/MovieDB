@@ -38,6 +38,22 @@ async function handleLogin(event) {
     }
 }
 
+async function loadProfileInfo() {
+    const userId = getUserId();
+    if (!userId) {
+        showError('User not logged in');
+        return;
+    }
+    try {
+        const response = await makeApiRequest(`/api/userProfile?userId=${userId}`, 'GET');
+        const profile = await response.json();
+        const profileInfo = document.querySelector('#profile-info');
+        profileInfo.textContent = `User ID: ${profile.userId}, Email: ${profile.email}`;
+    } catch (error) {
+        showError('Failed to load profile information');
+    }
+}
+
 function signOut() {
     // Clear any user-related data (e.g., userId from localStorage or sessionStorage)
     localStorage.removeItem('userId');
@@ -68,35 +84,36 @@ async function handleRegister(event) {
 //#endregion
 
 //#region Movie List Management Functions
-async function loadWatchlist() {
+async function loadList(listName) {
     const userId = getUserId();
     if (!userId) {
         showError('User not logged in');
         return;
     }
     try {
-        const response = await makeApiRequest(`/api/listWatchlist?userId=${userId}`, 'GET');
+        const response = await makeApiRequest(`/api/list${listName}?userId=${userId}`, 'GET');
         const movies = await response.json();
-        displayMovies(movies, 'watchlist');
+        displayMovies(movies, listName);
     } catch (error) {
-        showError('Failed to load watchlist');
+        showError('Failed to load list' + listName);
     }
 }
 
-async function loadWatchedList() {
+async function loadFriendWatchedList(friendId) {
     const userId = getUserId();
     if (!userId) {
         showError('User not logged in');
         return;
     }
     try {
-        const response = await makeApiRequest(`/api/listWatched?userId=${userId}`, 'GET');
+        const response = await makeApiRequest(`/api/listwatched?userId=${friendId}`, 'GET');
         const movies = await response.json();
-        displayMovies(movies, 'watched');
+        displayMovies(movies, "watched");
     } catch (error) {
-        showError('Failed to load watched list');
+        showError(`Failed to load ${friendId}'s watched list`);
     }
 }
+
 
 function displayMovies(movies, elementId) {
     const container = document.querySelector(`#${elementId}`);
@@ -116,8 +133,8 @@ async function moveToWatched(movieId) {
             listName: "listName"
         });
         if (response.ok) {
-            showSuccess('Movie moved to watched list');
-            loadWatchlist(); // Reload the watchlist after moving the movie
+            showSuccess('Movie moved to Watched list');
+            loadList("watchlist"); // Reload the watchlist after moving the movie
         } else {
             throw new Error('Failed to move movie to watched list');
         }
@@ -141,11 +158,7 @@ async function addToList(movieId, listName) {
         });
         console.log(`Response status: ${response.status}`); // Log the response status
         if (response.ok) {
-            if (listName === 'watchlist') {
-                showSuccess('Movie added to watchlist');
-            } else if (listName === 'watched') {
-                showSuccess('Movie added to watched');
-            }
+            showSuccess('Movie added to ' + listName);
         } else {
             const errorText = await response.text(); // Get error text from the response
             showError(`Failed to add movie to ${listName}: ${errorText}`);
@@ -172,6 +185,7 @@ async function deleteMovie(movieId, listName) {
         });
         if (response.ok) {
             showSuccess('Deleted movie successfully');
+            loadList(listName);
         } else {
             throw new Error('Failed to delete movie');
         }
@@ -308,13 +322,6 @@ function showError(message) {
     }, 3000);
 }
 
-function clearElement(elementId) {
-    const element = document.querySelector(`#${elementId}`);
-    while (element.firstChild) {
-        element.removeChild(element.firstChild);
-    }
-}
-
 async function makeApiRequest(url, method, body = null) {
     const options = {
         method,
@@ -334,6 +341,292 @@ function getUserId() {
 }
 //#endregion
 
+//*region Friends
+
+async function searchUsers() {
+    const query = document.querySelector('#user-search').value;
+    window.location.href = `/search?type=users&query=${encodeURIComponent(query)}`;
+}
+
+async function performUserSearch(query) {
+    const userId = getUserId();
+    try {
+        const response = await makeApiRequest(`/api/searchUsers?query=${encodeURIComponent(query)}`, 'GET');
+        const users = await response.json();
+        
+        // Fetch pending requests to check status
+        const requestsResponse = await makeApiRequest(`/api/listFriendRequests?userId=${userId}`, 'GET');
+        const pendingRequests = await requestsResponse.json();
+
+        // Add request status to user search results
+        users.forEach(user => {
+            const request = pendingRequests.find(req => 
+                (req.requester_id === userId && req.requestee_id === user.userId) || 
+                (req.requestee_id === userId && req.requester_id === user.userId)
+            );
+            if (request) {
+                user.requestStatus = request.status;
+                user.requester_id = request.requester_id;
+                user.requestee_id = request.requestee_id;
+            }
+        });
+
+        displayUserSearchResults(users);
+    } catch (error) {
+        showError('Failed to search users');
+    }
+}
+
+
+function displayUserSearchResults(users) {
+    const container = document.querySelector('#search-results');
+    clearElement(container);  // Pass the element directly
+    users.forEach(user => {
+        const userElement = createUserElement(user, 'search');
+        container.appendChild(userElement);
+    });
+}
+
+function createUserElement(user, type) {
+    const userDiv = document.createElement('div');
+    userDiv.classList.add('user');
+
+    const userId = document.createElement('div');
+    userId.classList.add('user-id');
+    userId.textContent = user.userId || user.requester_id || user.requestee_id || user.friendId;
+
+    const actions = document.createElement('div');
+    actions.classList.add('user-actions');
+
+    if (type === 'search') {
+        // Check if a request already exists
+        if (user.requestStatus) {
+            if (user.requestStatus === 'pending') {
+                if (user.requester_id === getUserId()) {
+                    // Request sent by the current user
+                    const removeButton = document.createElement('button');
+                    removeButton.classList.add('button-red');
+                    removeButton.textContent = 'Remove Request';
+                    removeButton.onclick = () => removeFriendRequest(user.requestee_id);
+                    actions.appendChild(removeButton);
+                } else {
+                    // Request received by the current user
+                    const acceptButton = document.createElement('button');
+                    acceptButton.textContent = 'Accept';
+                    acceptButton.classList.add('button-accept');
+                    acceptButton.onclick = () => acceptFriendRequest(user.requester_id);
+                    const declineButton = document.createElement('button');
+                    declineButton.classList.add('button-red');
+                    declineButton.textContent = 'Decline';
+                    declineButton.onclick = () => declineFriendRequest(user.requester_id);
+                    actions.appendChild(acceptButton);
+                    actions.appendChild(declineButton);
+                }
+            }
+        } else {
+            // No existing request
+            const actionButton = document.createElement('button');
+            actionButton.textContent = 'Send Request';
+            actionButton.onclick = () => sendFriendRequest(getUserId(), user.userId);
+            actions.appendChild(actionButton);
+        }
+    } else if (type === 'request') {
+        if (user.requester_id === getUserId()) {
+            // Request sent by the current user
+            const removeButton = document.createElement('button');
+            removeButton.classList.add('button-red');
+            removeButton.textContent = 'Remove Request';
+            removeButton.onclick = () => removeFriendRequest(user.requestee_id);
+            actions.appendChild(removeButton);
+        } else {
+            // Request received by the current user
+            const acceptButton = document.createElement('button');
+            acceptButton.textContent = 'Accept';
+            acceptButton.classList.add('button-accept');
+            acceptButton.onclick = () => acceptFriendRequest(user.requester_id);
+            const declineButton = document.createElement('button');
+            declineButton.textContent = 'Decline';
+            declineButton.classList.add('button-red');
+            declineButton.onclick = () => declineFriendRequest(user.requester_id);
+            actions.appendChild(acceptButton);
+            actions.appendChild(declineButton);
+        }
+    } else if (type === 'friend') {
+        console.log("create element")
+        console.log(user.friendId)
+        const watchedButton = document.createElement('button');
+        watchedButton.classList.add('button-blue');
+        watchedButton.textContent = 'See Watched List';
+        watchedButton.onclick = () => window.location.href = `/watched?friendId=${user.friendId}`;
+        const removeButton = document.createElement('button');
+        removeButton.classList.add('button-red');
+        removeButton.textContent = 'Remove';
+        removeButton.onclick = () => removeFriend(user.friendId);
+        actions.appendChild(watchedButton);
+        actions.appendChild(removeButton);
+    }
+
+    userDiv.appendChild(userId);
+    userDiv.appendChild(actions);
+
+    return userDiv;
+}
+
+async function sendFriendRequest(requesterId, requesteeId) {
+    try {
+        const response = await makeApiRequest('/api/sendFriendRequest', 'POST', {
+            requesterId,
+            requesteeId
+        });
+        if (response.ok) {
+            showSuccess('Friend request sent');
+            updateUserSearchResult(requesteeId, 'Remove Request');
+        } else {
+            showError('Failed to send friend request');
+        }
+    } catch (error) {
+        showError('Failed to send friend request');
+    }
+}
+
+async function acceptFriendRequest(requesterId) {
+    const requesteeId = getUserId();
+    try {
+        const response = await makeApiRequest('/api/acceptFriendRequest', 'POST', {
+            requesterId,
+            requesteeId
+        });
+        if (response.ok) {
+            showSuccess('Friend request accepted');
+            loadFriendRequests();
+            loadFriends();
+        } else {
+            showError('Failed to accept friend request');
+        }
+    } catch (error) {
+        showError('Failed to accept friend request');
+    }
+}
+
+async function declineFriendRequest(requesterId) {
+    const requesteeId = getUserId();
+    try {
+        const response = await makeApiRequest('/api/declineFriendRequest', 'POST', {
+            requesterId,
+            requesteeId
+        });
+        if (response.ok) {
+            showSuccess('Friend request declined');
+            loadFriendRequests();
+            loadFriends();
+        } else {
+            showError('Failed to decline friend request');
+        }
+    } catch (error) {
+        showError('Failed to decline friend request');
+    }
+}
+
+async function removeFriendRequest(requesteeId) {
+    const requesterId = getUserId();
+    try {
+        const response = await makeApiRequest('/api/removeFriendRequest', 'POST', {
+            requesterId,
+            requesteeId
+        });
+        if (response.ok) {
+            showSuccess('Friend request removed');
+            loadFriendRequests();
+            loadFriends();
+        } else {
+            showError('Failed to remove friend request');
+        }
+    } catch (error) {
+        showError('Failed to remove friend request');
+    }
+}
+
+async function removeFriend(friendId) {
+    const userId = getUserId();
+    try {
+        const response = await makeApiRequest('/api/removeFriend', 'POST', {
+            userId,
+            friendId
+        });
+        if (response.ok) {
+            showSuccess('Friend request removed');
+            loadFriendRequests();
+            loadFriends();
+        } else {
+            showError('Failed to remove friend request');
+        }
+    } catch (error) {
+        showError('Failed to remove friend request');
+    }
+}
+
+
+function updateUserSearchResult(userId, actionText) {
+    const userElements = document.querySelectorAll('.user');
+    userElements.forEach(userElement => {
+        const idElement = userElement.querySelector('.user-id');
+        if (idElement && idElement.textContent === userId) {
+            const actionButton = userElement.querySelector('button');
+            if (actionButton) {
+                actionButton.textContent = actionText;
+            }
+        }
+    });
+}
+
+function clearElement(element) {
+    while (element.firstChild) {
+        element.removeChild(element.firstChild);
+    }
+}
+
+async function loadFriendRequests() {
+    const userId = getUserId();
+    try {
+        const response = await makeApiRequest(`/api/listFriendRequests?userId=${userId}`, 'GET');
+        const requests = await response.json();
+        displayFriendRequests(requests);
+    } catch (error) {
+        showError('Failed to load friend requests');
+    }
+}
+
+async function loadFriends() {
+    const userId = getUserId();
+    try {
+        const response = await makeApiRequest(`/api/listFriends?userId=${userId}`, 'GET');
+        const friends = await response.json();
+        displayFriends(friends);
+    } catch (error) {
+        showError('Failed to load friends');
+    }
+}
+
+function displayFriendRequests(requests) {
+    const container = document.querySelector('#pending-requests');
+    clearElement(container);
+    requests.forEach(request => {
+        const requestElement = createUserElement(request, 'request');
+        container.appendChild(requestElement);
+    });
+}
+
+function displayFriends(friends) {
+    const container = document.querySelector('#friends');
+    clearElement(container);
+    friends.forEach(friend => {
+        const friendElement = createUserElement(friend, 'friend');
+        container.appendChild(friendElement);
+    });
+}
+
+//*endregion
+
 //#region Page-specific Initialization
 function initLoginPage() {
     document.querySelector('#login-form').addEventListener('submit', handleLogin);
@@ -344,19 +637,9 @@ function initRegisterPage() {
 }
 
 async function initProfilePage() {
-    const userId = getUserId();
-    if (!userId) {
-        showError('User not logged in');
-        return;
-    }
-    try {
-        const response = await makeApiRequest(`/api/userProfile?userId=${userId}`, 'GET');
-        const profile = await response.json();
-        const profileInfo = document.querySelector('#profile-info');
-        profileInfo.textContent = `User ID: ${profile.userId}, Email: ${profile.email}`;
-    } catch (error) {
-        showError('Failed to load profile information');
-    }
+    loadProfileInfo();
+    loadFriendRequests();
+    loadFriends();
 }
 //#endregion
 
@@ -364,28 +647,51 @@ async function initProfilePage() {
 
 
 function initWatchlistPage() {
-    loadWatchlist();
+    loadList("watchlist");
 }
 
 function initWatchedPage() {
-    loadWatchedList();
+    const urlParams = new URLSearchParams(window.location.search);
+    const friendId = urlParams.get('friendId');
+    if (friendId) {
+        loadFriendWatchedList(friendId);
+        document.title = `Watched Movies - ${friendId}`;
+        const headerTitle = document.getElementById('watched-title');
+        if (headerTitle) {
+            headerTitle.textContent = `Watched Movies - ${friendId}`;
+        }
+    } else {
+        loadList("watched");
+        document.title = 'Watched Movies';
+        const headerTitle = document.getElementById('watched-title');
+        if (headerTitle) {
+            headerTitle.textContent = 'Watched Movies';
+        }
+    }
 }
 
 function initSearchPage() {
-    document.querySelector('#search-form').addEventListener('submit', handleSearch);
+    const userSearchButton = document.getElementById('user-search-btn');
+    const searchForm = document.getElementById('search-form');
+    const searchTitle = document.getElementById('search-title');
 
-    const localSearchBtn = document.querySelector('#local-search');
-    const tmdbSearchBtn = document.querySelector('#tmdb-search');
+    userSearchButton.addEventListener('click', searchUsers);
 
-    localSearchBtn.addEventListener('click', () => {
-        localSearchBtn.classList.add('active');
-        tmdbSearchBtn.classList.remove('active');
-    });
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchType = urlParams.get('type');
+    const query = urlParams.get('query');
 
-    tmdbSearchBtn.addEventListener('click', () => {
-        tmdbSearchBtn.classList.add('active');
-        localSearchBtn.classList.remove('active');
-    });
+    if (searchType === 'users') {
+        searchForm.style.display = 'none';
+        searchTitle.textContent = 'Search Users';
+        if (query) {
+            performUserSearch(query);
+        }
+    } else {
+        searchForm.style.display = 'block';
+        searchTitle.textContent = 'Search Movies';
+        document.getElementById('search-form').addEventListener('submit', handleSearch);
+    }
 }
 
 const GENRE_MAP = {

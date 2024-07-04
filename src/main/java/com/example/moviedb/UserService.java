@@ -1,6 +1,7 @@
 package com.example.moviedb;
 
 import com.scalar.db.exception.transaction.TransactionException;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -82,4 +83,49 @@ public class UserService {
         String hashedInputPassword = hashPassword(inputPassword);
         return hashedInputPassword.equals(storedPassword);
     }
+
+    //region friends
+
+    public JsonNode searchUsers(String query) throws TransactionException {
+        try{
+            return scalarDBOperations.searchUsers(query);
+        } catch (Exception e) {
+            throw new TransactionException("Failed to search users: ", e.getMessage());
+        }
+    }
+
+    
+
+    public void sendFriendRequest(String requesterId, String requesteeId) throws TransactionException {
+        scalarDBOperations.sendFriendRequest(requesterId, requesteeId);
+    }
+
+    public void acceptFriendRequest(String requesterId, String requesteeId) throws TransactionException {
+        scalarDBOperations.acceptFriendRequest(requesterId, requesteeId);
+    }
+
+    public void declineFriendRequest(String requesterId, String requesteeId) throws TransactionException {
+        scalarDBOperations.declineFriendRequest(requesterId, requesteeId);
+    }
+
+    public void removeFriendRequest(String userId, String friendId) throws TransactionException {
+        scalarDBOperations.removeFriendRequest(userId, friendId);
+    }
+
+    public void removeFriend(String userId, String friendId) throws TransactionException {
+        scalarDBOperations.removeFriend(userId, friendId);
+    }
+
+    public JsonNode listAllFriends(String userId) throws TransactionException {
+        return scalarDBOperations.listAllFriends(userId);
+
+    }
+
+    public JsonNode listFriendRequests(String userId) throws TransactionException {
+        return scalarDBOperations.listFriendRequests(userId);
+    }
+
+    //endregion
+
+
 }

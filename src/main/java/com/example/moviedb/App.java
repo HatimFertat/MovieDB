@@ -27,6 +27,7 @@ public class App {
         app.get("/watchlist", ctx -> ctx.render("views/watchlist.html"));
         app.get("/watched", ctx -> ctx.render("views/watched.html"));
         app.get("/search", ctx -> ctx.render("views/search.html"));
+        app.get("/friends", ctx -> ctx.render("views/friends.html"));
 
         // API routes
         app.post("/api/login", App::handleLogin);
@@ -35,10 +36,19 @@ public class App {
         app.delete("/api/deleteMovie", App::handleDeleteMovie);
         app.get("/api/searchMovies", App::handleSearchLocalMovies); 
         app.get("/api/searchTMDBMovies", App::handleSearchTMDBMovies);
-        app.get("/api/listWatchlist", App::handleListWatchlist);
-        app.get("/api/listWatched", App::handleListWatched);
+        app.get("/api/listwatchlist", App::handleListWatchlist);
+        app.get("/api/listwatched", App::handleListWatched);
         app.post("/api/moveToWatched", App::handleMoveToWatched);
         app.get("/api/userProfile", App::handleUserProfile);
+
+        app.get("/api/searchUsers", App::handleSearchUsers);
+        app.post("/api/sendFriendRequest", App::handleSendFriendRequest);
+        app.post("/api/acceptFriendRequest", App::handleAcceptFriendRequest);
+        app.post("/api/declineFriendRequest", App::handleDeclineFriendRequest);
+        app.post("/api/removeFriendRequest", App::handleRemoveFriendRequest);
+        app.post("/api/removeFriend", App::handleRemoveFriend);
+        app.get("/api/listFriends", App::handleListFriends);
+        app.get("/api/listFriendRequests", App::handleListFriendRequests);
     }
 
     private static class RegisterRequest {
@@ -57,7 +67,13 @@ public class App {
         public String movieId;
         public String listName;
     }
+    
+    private static class FriendRequest {
+        public String requesterId;
+        public String requesteeId;
+    }
 
+    //region user login
     private static void handleLogin(Context ctx) {
         LoginRequest loginRequest = ctx.bodyAsClass(LoginRequest.class);
 
@@ -132,6 +148,9 @@ public class App {
         }
     }
 
+    //endregion
+
+    //region add/remove movies
 
     private static void handleAddMovie(Context ctx) {
         addMovieRequest addMovieRequest = ctx.bodyAsClass(addMovieRequest.class);
@@ -198,6 +217,10 @@ public class App {
         }
     }
 
+    //endregion
+
+    //region search & Lists
+
     private static void handleSearchLocalMovies(Context ctx) {
         String query = ctx.queryParam("query");
     
@@ -225,7 +248,6 @@ public class App {
         }
     }
     
-        
     private static void handleSearchTMDBMovies(Context ctx) {
         String query = ctx.queryParam("query");
     
@@ -259,8 +281,6 @@ public class App {
             ctx.status(500).result("Failed to search TMDB movies");
         }
     }
-        
-
 
     private static void handleListWatchlist(Context ctx) {
         String userId = ctx.queryParam("userId");
@@ -280,8 +300,6 @@ public class App {
         }
     }
 
-    
-
     private static void handleListWatched(Context ctx) {
         String userId = ctx.queryParam("userId");
 
@@ -298,7 +316,6 @@ public class App {
             ctx.status(500).result("Failed to list watched");
         }
     }
-
 
     private static void handleMoveToWatched(Context ctx) {
         addMovieRequest addMovieRequest = ctx.bodyAsClass(addMovieRequest.class);
@@ -326,4 +343,155 @@ public class App {
             ctx.status(500).result("Failed to move movie to watched list");
         }
     }
+
+    //endregion
+    
+    //region
+
+    private static void handleSearchUsers(Context ctx) {
+        String query = ctx.queryParam("query");
+        if (query == null || query.trim().isEmpty()) {
+            ctx.status(400).result("Search query is required");
+            return;
+        }
+
+        try {
+            JsonNode users = userService.searchUsers(query);
+            ctx.json(users);
+        } catch (Exception e) {
+            ctx.status(500).result("Failed to search users");
+        }
+    }
+
+    private static void handleSendFriendRequest(Context ctx) {
+        FriendRequest friendRequest = ctx.bodyAsClass(FriendRequest.class);
+
+        String requesterId = friendRequest.requesterId;
+        String requesteeId = friendRequest.requesteeId;
+
+        if (requesterId == null || requesterId.trim().isEmpty() || requesteeId == null || requesteeId.trim().isEmpty()) {
+            ctx.status(400).result("Requester ID and Requestee ID are required");
+            return;
+        }
+
+        try {
+            userService.sendFriendRequest(requesterId, requesteeId);
+            ctx.status(200).result("Friend request sent");
+        } catch (Exception e) {
+            ctx.status(500).result("Failed to send friend request");
+        }
+    }
+
+    private static void handleAcceptFriendRequest(Context ctx) {
+        FriendRequest friendRequest = ctx.bodyAsClass(FriendRequest.class);
+
+        String requesterId = friendRequest.requesterId;
+        String requesteeId = friendRequest.requesteeId;
+
+        if (requesterId == null || requesterId.trim().isEmpty() || requesteeId == null || requesteeId.trim().isEmpty()) {
+            ctx.status(400).result("Requester ID and Requestee ID are required");
+            return;
+        }
+
+        try {
+            userService.acceptFriendRequest(requesterId, requesteeId);
+            ctx.status(200).result("Friend request accepted");
+        } catch (Exception e) {
+            ctx.status(500).result("Failed to accept friend request");
+        }
+    }
+
+    private static void handleDeclineFriendRequest(Context ctx) {
+        FriendRequest friendRequest = ctx.bodyAsClass(FriendRequest.class);
+
+        String requesterId = friendRequest.requesterId;
+        String requesteeId = friendRequest.requesteeId;
+
+        if (requesterId == null || requesterId.trim().isEmpty() || requesteeId == null || requesteeId.trim().isEmpty()) {
+            ctx.status(400).result("Requester ID and Requestee ID are required");
+            return;
+        }
+
+        try {
+            userService.declineFriendRequest(requesterId, requesteeId);
+            ctx.status(200).result("Friend request declined");
+        } catch (Exception e) {
+            ctx.status(500).result("Failed to decline friend request");
+        }
+    }
+
+    private static void handleRemoveFriendRequest(Context ctx) {
+        FriendRequest friendRequest = ctx.bodyAsClass(FriendRequest.class);
+
+        String requesterId = friendRequest.requesterId;
+        String requesteeId = friendRequest.requesteeId;
+
+        if (requesterId == null || requesterId.trim().isEmpty() || requesteeId == null || requesteeId.trim().isEmpty()) {
+            ctx.status(400).result("User ID and Friend ID are required");
+            return;
+        }
+
+        try {
+            userService.removeFriendRequest(requesterId, requesteeId);
+            ctx.status(200).result("Friend removed");
+        } catch (Exception e) {
+            ctx.status(500).result("Failed to remove friend");
+        }
+    }
+
+    private static void handleRemoveFriend(Context ctx) {
+        FriendRequest friendRequest = ctx.bodyAsClass(FriendRequest.class);
+
+        String userId = friendRequest.requesterId;
+        String friendId = friendRequest.requesteeId;
+
+        if (userId == null || userId.trim().isEmpty() || friendId == null || friendId.trim().isEmpty()) {
+            ctx.status(400).result("User ID and Friend ID are required");
+            return;
+        }
+
+        try {
+            userService.removeFriend(userId, friendId);
+            ctx.status(200).result("Friend removed");
+        } catch (Exception e) {
+            ctx.status(500).result("Failed to remove friend");
+        }
+    }
+
+    private static void handleListFriends(Context ctx) {
+        String userId = ctx.queryParam("userId");
+        // System.out.println("FRIENDS USERID");
+        // System.out.println(userId);
+        if (userId == null || userId.trim().isEmpty()) {
+            ctx.status(400).result("User ID is required");
+            return;
+        }
+
+        try {
+            JsonNode friends = userService.listAllFriends(userId);
+            System.out.println("FRIENDS");
+            System.out.println(friends);
+            ctx.json(friends);
+        } catch (Exception e) {
+            ctx.status(500).result("Failed to list friends");
+        }
+    }
+
+    private static void handleListFriendRequests(Context ctx) {
+        String userId = ctx.queryParam("userId");
+        if (userId == null || userId.trim().isEmpty()) {
+            ctx.status(400).result("User ID is required");
+            return;
+        }
+
+        try {
+            JsonNode friendRequests = userService.listFriendRequests(userId);
+            ctx.json(friendRequests);
+        } catch (Exception e) {
+            System.out.println(e);
+            ctx.status(500).result("Failed to list friend requests");
+        }
+    }
+
+    //endregion
 }

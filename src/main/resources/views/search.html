@@ -9,15 +9,17 @@
 <body>
     <div class="header">
         <nav class="nav-left">
+            <button onclick="window.location.href='/search'">Browse</button>
             <button onclick="window.location.href='/profile'">Profile</button>
             <button onclick="window.location.href='/watchlist'">Watchlist</button>
             <button onclick="window.location.href='/watched'">Watched</button>
-            <button onclick="window.location.href='/search'">Search</button>
         </nav>
+        <input type="text" id="user-search" placeholder="Search users...">
+        <button onclick="searchUsers()" id="user-search-btn">User Search</button>
         <button class="sign-out" onclick="signOut()">Sign Out</button>
     </div>
     <div class="container">
-        <h1>Search Movies</h1>
+        <h1 id="search-title">Search Movies</h1>
         <div class="form-container">
             <form id="search-form">
                 <label for="query">Movie Title:</label>
