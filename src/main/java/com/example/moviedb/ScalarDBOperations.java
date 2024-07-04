@@ -127,7 +127,6 @@ public class ScalarDBOperations {
             tx.put(putMovie);
     
             tx.commit();
-            System.out.println("Movie added to movies table successfully");
     
         } catch (Exception e) {
             tx.rollback();
@@ -153,7 +152,6 @@ public class ScalarDBOperations {
             tx.put(putList);
     
             tx.commit();
-            System.out.println("Movie added to " + listName + " successfully");
     
         } catch (Exception e) {
             tx.rollback();
@@ -180,7 +178,6 @@ public class ScalarDBOperations {
             // Execute the delete request
             tx.delete(deleteMovie);
             tx.commit();
-            System.out.println("Movie removed from " + listName + " successfully");
         } catch (Exception e) {
             tx.rollback();
             e.printStackTrace();  // Print the stack trace to understand the exception better
@@ -226,7 +223,6 @@ public class ScalarDBOperations {
     
             // Commit the transaction
             tx.commit();
-            System.out.println("Movie moved from watchlist to watched successfully");
         } catch (Exception e) {
             tx.rollback();
             e.printStackTrace();
@@ -325,8 +321,6 @@ public class ScalarDBOperations {
             tx.put(putUser);
     
             tx.commit();
-            System.out.println("User added to users table successfully");
-    
         } catch (Exception e) {
             tx.rollback();
             e.printStackTrace();  // Print the stack trace to understand the exception better
@@ -365,7 +359,6 @@ public class ScalarDBOperations {
     
             tx.put(putRequest);
             tx.commit();
-            System.out.println("Friend request sent successfully");
         } catch (Exception e) {
             tx.rollback();
             e.printStackTrace();
@@ -415,7 +408,6 @@ public class ScalarDBOperations {
                 tx.delete(deleteRequest);
     
                 tx.commit();
-                System.out.println("Friend request accepted and users added as friends successfully");
             } else {
                 tx.rollback();
                 System.out.println("No pending friend request found to accept");
@@ -451,7 +443,6 @@ public class ScalarDBOperations {
                 tx.delete(deleteRequest);
     
                 tx.commit();
-                System.out.println("Friend request declined and removed successfully");
             } else {
                 tx.rollback();
                 System.out.println("No pending friend request found to decline");
@@ -487,7 +478,6 @@ public class ScalarDBOperations {
                 tx.delete(deleteRequest);
     
                 tx.commit();
-                System.out.println("Friend request removed successfully");
             } else {
                 tx.rollback();
                 System.out.println("No friend request found to remove");
@@ -522,7 +512,6 @@ public class ScalarDBOperations {
             tx.delete(deleteFriend2);
     
             tx.commit();
-            System.out.println("Friend removed successfully");
         } catch (Exception e) {
             tx.rollback();
             e.printStackTrace();

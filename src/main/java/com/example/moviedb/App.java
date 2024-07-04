@@ -460,8 +460,6 @@ public class App {
 
     private static void handleListFriends(Context ctx) {
         String userId = ctx.queryParam("userId");
-        // System.out.println("FRIENDS USERID");
-        // System.out.println(userId);
         if (userId == null || userId.trim().isEmpty()) {
             ctx.status(400).result("User ID is required");
             return;
@@ -469,8 +467,6 @@ public class App {
 
         try {
             JsonNode friends = userService.listAllFriends(userId);
-            System.out.println("FRIENDS");
-            System.out.println(friends);
             ctx.json(friends);
         } catch (Exception e) {
             ctx.status(500).result("Failed to list friends");

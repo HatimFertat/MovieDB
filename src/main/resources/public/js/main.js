@@ -117,7 +117,7 @@ async function loadFriendWatchedList(friendId) {
 
 function displayMovies(movies, elementId) {
     const container = document.querySelector(`#${elementId}`);
-    clearElement(elementId);
+    clearElement(container);
     movies.forEach(movie => {
         const movieElement = createMovieElement(movie, elementId); //elementId is the same as listName
         container.appendChild(movieElement);
@@ -185,13 +185,20 @@ async function deleteMovie(movieId, listName) {
         });
         if (response.ok) {
             showSuccess('Deleted movie successfully');
-            loadList(listName);
+            removeMovieElement(movieId, listName);
         } else {
             throw new Error('Failed to delete movie');
         }
     } catch (error) {
         showError('Failed to delete movie');
         console.error('Error deleting movie:', error);
+    }
+}
+
+function removeMovieElement(movieId, listName) {
+    const movieElement = document.querySelector(`#movie-${listName}-${movieId}`);
+    if (movieElement) {
+        movieElement.remove();
     }
 }
 
@@ -235,6 +242,7 @@ function displaySearchResults(movies) {
 function createMovieElement(movie, listName) {
     const movieDiv = document.createElement('div');
     movieDiv.classList.add('movie');
+    movieDiv.id = `movie-${listName}-${movie.id}`;
 
     const title = document.createElement('div');
     title.classList.add('movie-title');

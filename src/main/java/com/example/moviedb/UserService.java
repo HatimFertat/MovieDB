@@ -26,7 +26,6 @@ public class UserService {
             if (scalarDBOperations.isUserInUsersTable(userId)) {
                 return false; // User already exists
             }
-            System.out.println("Registering user: " + userId);
 
             Map<String, String> userDetails = new HashMap<>();
             userDetails.put("userId", userId);
