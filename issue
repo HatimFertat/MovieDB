@@ -1,0 +1,148 @@
+look at this, I want, whether I'm in the profile page, or the user search, that when I click on a button, it updates the buttons correctly efficiently.
+Everything works correctly in the profile page because I use the "loadfriends" and "loadfriendrequests" functions.
+But in the search user page, it only works for the send request and remove request parts, not when I accept or decline or remove the friend. Please make it work.
+function createUserElement(user, type) {
+    const userDiv = document.createElement('div');
+    userDiv.classList.add('user');
+
+    const userId = document.createElement('div');
+    userId.classList.add('user-id');
+    userId.textContent = user.userId || user.requester_id || user.requestee_id || user.friendId;
+
+    const actions = document.createElement('div');
+    actions.classList.add('user-actions');
+
+    if (type === 'search') { // Search user page
+        // Check if a request already exists
+        if (user.requestStatus) {
+            if (user.requestStatus === 'pending') {
+                if (user.requester_id === getUserId()) {
+                    // Request sent by the current user
+                    userId.textContent = user.requestee_id;
+                    const removeButton = document.createElement('button');
+                    removeButton.classList.add('button-red');
+                    removeButton.textContent = 'Remove Request';
+                    removeButton.onclick = () => removeFriendRequest(user.requestee_id);
+                    actions.appendChild(removeButton);
+                } else {
+                    // Request received by the current user
+                    const acceptButton = document.createElement('button');
+                    acceptButton.textContent = 'Accept';
+                    acceptButton.classList.add('button-accept');
+                    acceptButton.onclick = () => acceptFriendRequest(user.requester_id);
+                    const declineButton = document.createElement('button');
+                    declineButton.classList.add('button-red');
+                    declineButton.textContent = 'Decline';
+                    declineButton.onclick = () => declineFriendRequest(user.requester_id);
+                    actions.appendChild(acceptButton);
+                    actions.appendChild(declineButton);
+                }
+            }
+        } else if (user.isFriend) {
+            // User is already a friend
+            const watchedButton = document.createElement('button');
+            watchedButton.classList.add('button-blue');
+            watchedButton.textContent = 'See Watched List';
+            watchedButton.onclick = () => window.location.href = `/watched?friendId=${user.userId}`;
+            const removeButton = document.createElement('button');
+            removeButton.classList.add('button-red');
+            removeButton.textContent = 'Remove';
+            removeButton.onclick = () => removeFriend(user.userId);
+            actions.appendChild(watchedButton);
+            actions.appendChild(removeButton);
+        } else {
+            // No existing request and not friends
+            const actionButton = document.createElement('button');
+            actionButton.textContent = 'Send Request';
+            actionButton.onclick = () => sendFriendRequest(getUserId(), user.userId);
+            actions.appendChild(actionButton);
+        }
+    } else if (type === 'request') { // Friend requests part of the profile page
+        if (user.requester_id === getUserId()) {
+            // Request sent by the current user
+            userId.textContent = user.requestee_id;
+            const removeButton = document.createElement('button');
+            removeButton.classList.add('button-red');
+            removeButton.textContent = 'Remove Request';
+            removeButton.onclick = async () => { await removeFriendRequest(user.requestee_id); loadFriendRequests(); };
+            actions.appendChild(removeButton);
+        } else {
+            // Request received by the current user
+            userId.textContent = user.requester_id;
+            const acceptButton = document.createElement('button');
+            acceptButton.textContent = 'Accept';
+            acceptButton.classList.add('button-accept');
+            acceptButton.onclick = async () => { await acceptFriendRequest(user.requester_id); loadFriendRequests(); loadFriends(); };
+
+            const declineButton = document.createElement('button');
+            declineButton.textContent = 'Decline';
+            declineButton.classList.add('button-red');
+            declineButton.onclick = async () => { await declineFriendRequest(user.requester_id); loadFriendRequests(); loadFriends(); };
+
+            actions.appendChild(acceptButton);
+            actions.appendChild(declineButton);
+        }
+    } else if (type === 'friend') { // Friends part of the profile page
+        const watchedButton = document.createElement('button');
+        watchedButton.classList.add('button-blue');
+        watchedButton.textContent = 'See Watched List';
+        watchedButton.onclick = () => window.location.href = `/watched?friendId=${user.friendId}`;
+        const removeButton = document.createElement('button');
+        removeButton.classList.add('button-red');
+        removeButton.textContent = 'Remove';
+        removeButton.onclick = () => removeFriend(user.friendId);
+        removeButton.onclick = async () => { await removeFriend(user.friendId); loadFriends(); };
+        actions.appendChild(watchedButton);
+        actions.appendChild(removeButton);
+    }
+
+    userDiv.appendChild(userId);
+    userDiv.appendChild(actions);
+
+    return userDiv;
+}
+
+async function sendFriendRequest(requesterId, requesteeId) {
+    try {
+        const response = await makeApiRequest('/api/sendFriendRequest', 'POST', {
+            requesterId,
+            requesteeId
+        });
+        if (response.ok) {
+            showSuccess('Friend request sent');
+            updateUserSearchResult(requesteeId, 'Remove Request');
+        } else {
+            showError('Failed to send friend request');
+        }
+    } catch (error) {
+        console.error(error);
+        showError('Error Failed to send friend request');
+    }
+}
+
+function updateUserSearchResult(requesteeId, actionText) {
+    const userElements = document.querySelectorAll('.user');
+    userElements.forEach(userElement => {
+        const idElement = userElement.querySelector('.user-id');
+        if (idElement && idElement.textContent === requesteeId) {
+            const actionButton = userElement.querySelector('button');
+            if (actionButton) {
+                actionButton.textContent = actionText;
+                if (actionText === 'Remove Request') {
+                    actionButton.classList.add('button-red');
+                    actionButton.onclick = async () => { 
+                        await removeFriendRequest(requesteeId);
+                        updateUserSearchResult(requesteeId, "Send Request"); 
+                    };
+                } else if (actionText === 'Send Request') {
+                    actionButton.classList.remove('button-red');
+                    actionButton.onclick = async () => { 
+                        await sendFriendRequest(getUserId(), requesteeId);
+                        updateUserSearchResult(requesteeId, "Remove Request"); 
+                    };
+                }
+            }
+        }
+    });
+}
+

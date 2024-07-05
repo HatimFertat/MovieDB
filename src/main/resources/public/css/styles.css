@@ -144,7 +144,7 @@ button:hover {
 }
 
 .container {
-    margin-top: 70px; /* Increase margin to prevent content overlap with the header */
+    margin-top: 150px; /* Increase margin to prevent content overlap with the header */
     width: 80%; /* Full width */
     display: flex;
     flex-direction: column;
@@ -166,6 +166,7 @@ button:hover {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     width: 100%; /* Make the elements wider */
     margin-top: 20px;
+    margin-bottom: 20px;
 }
 
 .movie {
@@ -289,13 +290,14 @@ button:hover {
     margin: 0 20px; /* Add space on both sides */
     flex: 1; /* Allow the container to grow to fill available space */
     height: 100%; /* Ensure it takes the full height of the parent */
+    
 }
 
 #user-search-form {
     display: flex;
     align-items: center;
     width: 100%;
-    max-width: 800px; /* Adjust as needed */
+    max-width: 10000px; /* Adjust as needed */
 }
 
 #user-search {

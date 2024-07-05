@@ -72,6 +72,10 @@ public class App {
         public String requesterId;
         public String requesteeId;
     }
+    private static class Friendship {
+        public String userId;
+        public String friendId;
+    }
 
     //region user login
     private static void handleLogin(Context ctx) {
@@ -433,17 +437,17 @@ public class App {
 
         try {
             userService.removeFriendRequest(requesterId, requesteeId);
-            ctx.status(200).result("Friend removed");
+            ctx.status(200).result("Friend request removed");
         } catch (Exception e) {
             ctx.status(500).result("Failed to remove friend");
         }
     }
 
     private static void handleRemoveFriend(Context ctx) {
-        FriendRequest friendRequest = ctx.bodyAsClass(FriendRequest.class);
+        Friendship friendship = ctx.bodyAsClass(Friendship.class);
 
-        String userId = friendRequest.requesterId;
-        String friendId = friendRequest.requesteeId;
+        String userId = friendship.userId;
+        String friendId = friendship.friendId;
 
         if (userId == null || userId.trim().isEmpty() || friendId == null || friendId.trim().isEmpty()) {
             ctx.status(400).result("User ID and Friend ID are required");

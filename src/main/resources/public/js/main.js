@@ -239,6 +239,96 @@ function displaySearchResults(movies) {
         container.appendChild(movieElement);
     });
 }
+
+function displayUserSearchResults(users) {
+    console.log("displayusersearchresults")
+    const container = document.querySelector('#search-results');
+    clearElement(container);
+    users.forEach(user => {
+        const userElement = createUserElement(user, 'search');
+        container.appendChild(userElement);
+    });
+}
+
+async function performUserSearch(query) {
+    console.log("performusersearch");
+    const userId = getUserId();
+    try {
+        const response = await makeApiRequest(`/api/searchUsers?query=${encodeURIComponent(query)}`, 'GET');
+        let users = await response.json();
+        
+        // Remove the current user from the search results
+        users = users.filter(user => user.userId !== userId);
+        
+        // Fetch pending requests to check status
+        const requestsResponse = await makeApiRequest(`/api/listFriendRequests?userId=${userId}`, 'GET');
+        const pendingRequests = await requestsResponse.json();
+
+        // Fetch friends list to check friendship status
+        const friendsResponse = await makeApiRequest(`/api/listFriends?userId=${userId}`, 'GET');
+        const friendsList = await friendsResponse.json();
+
+        // Add request status and friendship status to user search results
+        users.forEach(user => {
+            const request = pendingRequests.find(req => 
+                (req.requester_id === userId && req.requestee_id === user.userId) || 
+                (req.requestee_id === userId && req.requester_id === user.userId)
+            );
+            const isFriend = friendsList.some(friend => friend.friendId === user.userId);
+            if (request) {
+                user.requestStatus = request.status;
+                user.requester_id = request.requester_id;
+                user.requestee_id = request.requestee_id;
+            } else if (isFriend) {
+                user.isFriend = true;
+            }
+        });
+
+        displayUserSearchResults(users);
+    } catch (error) {
+        showError('Failed to search users');
+    }
+}
+
+
+
+function searchUsers(event) {
+    console.log("searchusers")
+    if (event) {
+        event.preventDefault();
+    }
+    const query = document.querySelector('#user-search').value.trim();
+    if (query) {
+        window.location.href = `/search?type=users&query=${encodeURIComponent(query)}`;
+    }
+}
+
+function updateUserSearchResult(requesteeId, actionText) {
+    const userElements = document.querySelectorAll('.user');
+    userElements.forEach(userElement => {
+        const idElement = userElement.querySelector('.user-id');
+        if (idElement && idElement.textContent === requesteeId) {
+            const actionButton = userElement.querySelector('button');
+            if (actionButton) {
+                actionButton.textContent = actionText;
+                if (actionText === 'Remove Request') {
+                    actionButton.classList.add('button-red');
+                    actionButton.onclick = async () => { 
+                        await removeFriendRequest(requesteeId);
+                        updateUserSearchResult(requesteeId, "Send Request"); 
+                    };
+                } else if (actionText === 'Send Request') {
+                    actionButton.classList.remove('button-red');
+                    actionButton.onclick = async () => { 
+                        await sendFriendRequest(getUserId(), requesteeId);
+                        updateUserSearchResult(requesteeId, "Remove Request"); 
+                    };
+                }
+            }
+        }
+    });
+}
+
 //#endregion
 
 //#region Utility Functions
@@ -354,58 +444,11 @@ function getUserId() {
 
 //*region Friends
 
-function searchUsers(event) {
-    if (event) {
-        event.preventDefault();
-    }
-    const query = document.querySelector('#user-search').value.trim();
-    if (query) {
-        searchUsers(query);
-    }
-}
-
-async function performUserSearch(query) {
-    const userId = getUserId();
-    try {
-        const response = await makeApiRequest(`/api/searchUsers?query=${encodeURIComponent(query)}`, 'GET');
-        const users = await response.json();
-        
-        // Fetch pending requests to check status
-        const requestsResponse = await makeApiRequest(`/api/listFriendRequests?userId=${userId}`, 'GET');
-        const pendingRequests = await requestsResponse.json();
-
-        // Add request status to user search results
-        users.forEach(user => {
-            const request = pendingRequests.find(req => 
-                (req.requester_id === userId && req.requestee_id === user.userId) || 
-                (req.requestee_id === userId && req.requester_id === user.userId)
-            );
-            if (request) {
-                user.requestStatus = request.status;
-                user.requester_id = request.requester_id;
-                user.requestee_id = request.requestee_id;
-            }
-        });
-
-        displayUserSearchResults(users);
-    } catch (error) {
-        showError('Failed to search users');
-    }
-}
-
-
-function displayUserSearchResults(users) {
-    const container = document.querySelector('#search-results');
-    clearElement(container);  // Pass the element directly
-    users.forEach(user => {
-        const userElement = createUserElement(user, 'search');
-        container.appendChild(userElement);
-    });
-}
 
 function createUserElement(user, type) {
     const userDiv = document.createElement('div');
     userDiv.classList.add('user');
+    userDiv.dataset.userId = user.userId || user.requester_id || user.requestee_id || user.friendId;
 
     const userId = document.createElement('div');
     userId.classList.add('user-id');
@@ -414,60 +457,90 @@ function createUserElement(user, type) {
     const actions = document.createElement('div');
     actions.classList.add('user-actions');
 
-    if (type === 'search') {
+    if (type === 'search') { // Search user page
         // Check if a request already exists
         if (user.requestStatus) {
             if (user.requestStatus === 'pending') {
                 if (user.requester_id === getUserId()) {
                     // Request sent by the current user
+                    userId.textContent = user.requestee_id;
                     const removeButton = document.createElement('button');
                     removeButton.classList.add('button-red');
                     removeButton.textContent = 'Remove Request';
-                    removeButton.onclick = () => removeFriendRequest(user.requestee_id);
+                    removeButton.onclick = async () => removeFriendRequest(user.requestee_id);
                     actions.appendChild(removeButton);
                 } else {
                     // Request received by the current user
                     const acceptButton = document.createElement('button');
                     acceptButton.textContent = 'Accept';
                     acceptButton.classList.add('button-accept');
-                    acceptButton.onclick = () => acceptFriendRequest(user.requester_id);
+                    acceptButton.onclick = async () => {
+                        await acceptFriendRequest(user.requester_id);
+                        user.isFriend = true;
+                        user.requestStatus = null;
+                        recreateUserElement(user, 'search');
+                    };
                     const declineButton = document.createElement('button');
                     declineButton.classList.add('button-red');
                     declineButton.textContent = 'Decline';
-                    declineButton.onclick = () => declineFriendRequest(user.requester_id);
+                    declineButton.onclick = async () => {
+                        await declineFriendRequest(user.requester_id);
+                        user.requestStatus = null;
+                        recreateUserElement(user, 'search');
+                    };
                     actions.appendChild(acceptButton);
                     actions.appendChild(declineButton);
                 }
             }
+        } else if (user.isFriend) {
+            // User is already a friend
+            const watchedButton = document.createElement('button');
+            watchedButton.classList.add('button-blue');
+            watchedButton.textContent = 'See Watched List';
+            watchedButton.onclick = () => window.location.href = `/watched?friendId=${user.userId}`;
+            const removeButton = document.createElement('button');
+            removeButton.classList.add('button-red');
+            removeButton.textContent = 'Remove';
+            removeButton.onclick = async () => {
+                await removeFriend(user.userId);
+                user.isFriend = false;
+                recreateUserElement(user, 'search');
+            };
+            actions.appendChild(watchedButton);
+            actions.appendChild(removeButton);
         } else {
-            // No existing request
+            // No existing request and not friends
             const actionButton = document.createElement('button');
             actionButton.textContent = 'Send Request';
             actionButton.onclick = () => sendFriendRequest(getUserId(), user.userId);
             actions.appendChild(actionButton);
         }
-    } else if (type === 'request') {
+    } else if (type === 'request') { // Friend requests part of the profile page
         if (user.requester_id === getUserId()) {
             // Request sent by the current user
+            userId.textContent = user.requestee_id;
             const removeButton = document.createElement('button');
             removeButton.classList.add('button-red');
             removeButton.textContent = 'Remove Request';
-            removeButton.onclick = () => removeFriendRequest(user.requestee_id);
+            removeButton.onclick = async () => { await removeFriendRequest(user.requestee_id); loadFriendRequests(); };
             actions.appendChild(removeButton);
         } else {
             // Request received by the current user
+            userId.textContent = user.requester_id;
             const acceptButton = document.createElement('button');
             acceptButton.textContent = 'Accept';
             acceptButton.classList.add('button-accept');
-            acceptButton.onclick = () => acceptFriendRequest(user.requester_id);
+            acceptButton.onclick = async () => { await acceptFriendRequest(user.requester_id); loadFriendRequests(); loadFriends(); };
+
             const declineButton = document.createElement('button');
             declineButton.textContent = 'Decline';
             declineButton.classList.add('button-red');
-            declineButton.onclick = () => declineFriendRequest(user.requester_id);
+            declineButton.onclick = async () => { await declineFriendRequest(user.requester_id); loadFriendRequests(); loadFriends(); };
+
             actions.appendChild(acceptButton);
             actions.appendChild(declineButton);
         }
-    } else if (type === 'friend') {
+    } else if (type === 'friend') { // Friends part of the profile page
         const watchedButton = document.createElement('button');
         watchedButton.classList.add('button-blue');
         watchedButton.textContent = 'See Watched List';
@@ -475,7 +548,7 @@ function createUserElement(user, type) {
         const removeButton = document.createElement('button');
         removeButton.classList.add('button-red');
         removeButton.textContent = 'Remove';
-        removeButton.onclick = () => removeFriend(user.friendId);
+        removeButton.onclick = async () => { await removeFriend(user.friendId); loadFriends(); };
         actions.appendChild(watchedButton);
         actions.appendChild(removeButton);
     }
@@ -485,6 +558,16 @@ function createUserElement(user, type) {
 
     return userDiv;
 }
+
+function recreateUserElement(user, type) {
+    const userElement = document.querySelector(`[data-user-id='${user.userId || user.requester_id || user.requestee_id || user.friendId}']`);
+    if (userElement) {
+        const parent = userElement.parentElement;
+        const newUserElement = createUserElement(user, type);
+        parent.replaceChild(newUserElement, userElement);
+    }
+}
+
 
 async function sendFriendRequest(requesterId, requesteeId) {
     try {
@@ -499,7 +582,8 @@ async function sendFriendRequest(requesterId, requesteeId) {
             showError('Failed to send friend request');
         }
     } catch (error) {
-        showError('Failed to send friend request');
+        console.error(error);
+        showError('Error Failed to send friend request');
     }
 }
 
@@ -511,9 +595,7 @@ async function acceptFriendRequest(requesterId) {
             requesteeId
         });
         if (response.ok) {
-            // showSuccess('Friend request accepted');
-            loadFriendRequests();
-            loadFriends();
+            showSuccess('Friend request accepted');
         } else {
             showError('Failed to accept friend request');
         }
@@ -530,9 +612,7 @@ async function declineFriendRequest(requesterId) {
             requesteeId
         });
         if (response.ok) {
-            // showSuccess('Friend request declined');
-            loadFriendRequests();
-            loadFriends();
+            showSuccess('Friend request declined');
         } else {
             showError('Failed to decline friend request');
         }
@@ -549,14 +629,12 @@ async function removeFriendRequest(requesteeId) {
             requesteeId
         });
         if (response.ok) {
-            // showSuccess('Friend request removed');
-            loadFriendRequests();
-            loadFriends();
+            showSuccess('Friend request removed');
         } else {
             showError('Failed to remove friend request');
         }
     } catch (error) {
-        showError('Failed to remove friend request');
+        showError('Error Failed to remove friend request');
     }
 }
 
@@ -568,9 +646,7 @@ async function removeFriend(friendId) {
             friendId
         });
         if (response.ok) {
-            // showSuccess('Friend request removed');
-            loadFriendRequests();
-            loadFriends();
+            showSuccess('Friend removed');
         } else {
             showError('Failed to remove friend request');
         }
@@ -580,18 +656,6 @@ async function removeFriend(friendId) {
 }
 
 
-function updateUserSearchResult(userId, actionText) {
-    const userElements = document.querySelectorAll('.user');
-    userElements.forEach(userElement => {
-        const idElement = userElement.querySelector('.user-id');
-        if (idElement && idElement.textContent === userId) {
-            const actionButton = userElement.querySelector('button');
-            if (actionButton) {
-                actionButton.textContent = actionText;
-            }
-        }
-    });
-}
 
 function clearElement(element) {
     while (element.firstChild) {
@@ -685,20 +749,10 @@ function initWatchedPage() {
 }
 
 function initSearchPage() {
-    const userSearchForm = document.getElementById('user-search-form');
     const searchForm = document.getElementById('search-form');
     const searchTitle = document.getElementById('search-title');
     const tmdbSearchButton = document.getElementById('tmdb-search');
     const localSearchButton = document.getElementById('local-search');
-
-    // Event listener for user search form submission
-    userSearchForm.addEventListener('submit', (event) => {
-        event.preventDefault();
-        const userQuery = document.getElementById('user-search').value;
-        if (userQuery.trim() !== "") {
-            performUserSearch(userQuery);
-        }
-    });
 
     // Event listener for movie search form submission
     searchForm.addEventListener('submit', handleSearch);
@@ -727,6 +781,9 @@ function initSearchPage() {
     } else {
         searchForm.style.display = 'block';
         searchTitle.textContent = 'Search Movies';
+        if (query) {
+            handleSearch({ preventDefault: () => {} }); // Trigger search if query exists
+        }
     }
 }
 
@@ -786,6 +843,15 @@ function init() {
         initWatchedPage();
     } else if (currentPath === '/search') {
         initSearchPage();
+    }
+
+    // Add event listener for user search form submission
+    const userSearchForm = document.getElementById('user-search-form');
+    if (userSearchForm) {
+        userSearchForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            searchUsers(event);
+        });
     }
 }
 
