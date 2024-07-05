@@ -1,9 +1,12 @@
-pre-requisite: install maven 
+- pre-requisite: install maven, install java 17 
 
+- Create the database:
 $ java -jar scalardb-schema-loader-3.12.2.jar --config ./src/main/resources/scalardb.properties -f ./src/main/resources/schema.json --coordinator
 
+- Install the app:
 $ mvn clean install
 
+- Run the app:
 $ mvn exec:java -Dexec.mainClass=com.example.moviedb.App
 
 URL: http://localhost:7000/

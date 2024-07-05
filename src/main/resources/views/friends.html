@@ -15,8 +15,11 @@
             <button onclick="window.location.href='/search'">Search</button>
             <button onclick="window.location.href='/friends'">Friends</button>
         </nav>
-        <input type="text" id="user-search" placeholder="Search users...">
-        <button onclick="searchUsers()">Search</button>
+        <div class="search-container">
+            <form id="user-search-form">
+                <input type="text" id="user-search" placeholder="Search users...">
+            </form>
+        </div>
         <button onclick="signOut()">Sign Out</button>
     </div>
     <div class="container">

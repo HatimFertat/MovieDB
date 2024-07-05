@@ -48,7 +48,9 @@ async function loadProfileInfo() {
         const response = await makeApiRequest(`/api/userProfile?userId=${userId}`, 'GET');
         const profile = await response.json();
         const profileInfo = document.querySelector('#profile-info');
-        profileInfo.textContent = `User ID: ${profile.userId}, Email: ${profile.email}`;
+        profileInfo.setAttribute('style', 'white-space: pre;');
+        profileInfo.textContent = `User ID: ${profile.userId}\r\n\r\nEmail: ${profile.email}`;
+        profileInfo.classList.add('profile-info');
     } catch (error) {
         showError('Failed to load profile information');
     }
@@ -73,6 +75,7 @@ async function handleRegister(event) {
     try {
         const response = await makeApiRequest('/api/register', 'POST', { userId, email, password });
         if (response.ok) {
+            showSuccess("User registered successfully");
             window.location.href = '/';
         } else {
             showError('User already exists or invalid input');
@@ -230,7 +233,7 @@ async function handleSearch(event) {
 
 function displaySearchResults(movies) {
     const container = document.querySelector('#search-results');
-    clearElement('search-results');
+    clearElement(container);
     movies.forEach(movie => {
         const movieElement = createMovieElement(movie, "search");
         container.appendChild(movieElement);
@@ -351,9 +354,14 @@ function getUserId() {
 
 //*region Friends
 
-async function searchUsers() {
-    const query = document.querySelector('#user-search').value;
-    window.location.href = `/search?type=users&query=${encodeURIComponent(query)}`;
+function searchUsers(event) {
+    if (event) {
+        event.preventDefault();
+    }
+    const query = document.querySelector('#user-search').value.trim();
+    if (query) {
+        searchUsers(query);
+    }
 }
 
 async function performUserSearch(query) {
@@ -460,8 +468,6 @@ function createUserElement(user, type) {
             actions.appendChild(declineButton);
         }
     } else if (type === 'friend') {
-        console.log("create element")
-        console.log(user.friendId)
         const watchedButton = document.createElement('button');
         watchedButton.classList.add('button-blue');
         watchedButton.textContent = 'See Watched List';
@@ -505,7 +511,7 @@ async function acceptFriendRequest(requesterId) {
             requesteeId
         });
         if (response.ok) {
-            showSuccess('Friend request accepted');
+            // showSuccess('Friend request accepted');
             loadFriendRequests();
             loadFriends();
         } else {
@@ -524,7 +530,7 @@ async function declineFriendRequest(requesterId) {
             requesteeId
         });
         if (response.ok) {
-            showSuccess('Friend request declined');
+            // showSuccess('Friend request declined');
             loadFriendRequests();
             loadFriends();
         } else {
@@ -543,7 +549,7 @@ async function removeFriendRequest(requesteeId) {
             requesteeId
         });
         if (response.ok) {
-            showSuccess('Friend request removed');
+            // showSuccess('Friend request removed');
             loadFriendRequests();
             loadFriends();
         } else {
@@ -562,7 +568,7 @@ async function removeFriend(friendId) {
             friendId
         });
         if (response.ok) {
-            showSuccess('Friend request removed');
+            // showSuccess('Friend request removed');
             loadFriendRequests();
             loadFriends();
         } else {
@@ -679,11 +685,34 @@ function initWatchedPage() {
 }
 
 function initSearchPage() {
-    const userSearchButton = document.getElementById('user-search-btn');
+    const userSearchForm = document.getElementById('user-search-form');
     const searchForm = document.getElementById('search-form');
     const searchTitle = document.getElementById('search-title');
+    const tmdbSearchButton = document.getElementById('tmdb-search');
+    const localSearchButton = document.getElementById('local-search');
 
-    userSearchButton.addEventListener('click', searchUsers);
+    // Event listener for user search form submission
+    userSearchForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const userQuery = document.getElementById('user-search').value;
+        if (userQuery.trim() !== "") {
+            performUserSearch(userQuery);
+        }
+    });
+
+    // Event listener for movie search form submission
+    searchForm.addEventListener('submit', handleSearch);
+
+    // Event listeners for search type buttons
+    tmdbSearchButton.addEventListener('click', () => {
+        tmdbSearchButton.classList.add('active');
+        localSearchButton.classList.remove('active');
+    });
+
+    localSearchButton.addEventListener('click', () => {
+        localSearchButton.classList.add('active');
+        tmdbSearchButton.classList.remove('active');
+    });
 
     const urlParams = new URLSearchParams(window.location.search);
     const searchType = urlParams.get('type');
@@ -698,7 +727,6 @@ function initSearchPage() {
     } else {
         searchForm.style.display = 'block';
         searchTitle.textContent = 'Search Movies';
-        document.getElementById('search-form').addEventListener('submit', handleSearch);
     }
 }
 

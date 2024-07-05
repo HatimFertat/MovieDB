@@ -59,7 +59,6 @@ button {
     border-radius: 5px;
     font-size: 16px;
     margin-right: 10px;
-
 }
 
 .button-red {
@@ -99,7 +98,6 @@ button:hover {
     background-color: #0056b3;
 }
 
-
 /* Header and navigation button styling */
 .header {
     position: fixed;
@@ -118,12 +116,12 @@ button:hover {
     display: flex;
     gap: 10px;
     margin-left: 10px; /* Add space to the left edge */
+    align-items: center;
 }
 
 .header .sign-out {
     background-color: #dc3545;
     margin-right: 10px; /* Add space to the right edge */
-    margin-left: 10px; /* Add space to the right edge */
 }
 
 .header .sign-out:hover {
@@ -132,6 +130,12 @@ button:hover {
 
 .header .nav-left button {
     margin-right: 0px; /* Adjust the spacing as needed */
+}
+
+.header form {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
 }
 
 .header input[type="text"] {
@@ -266,7 +270,52 @@ button:hover {
     z-index: 1000;
 }
 
+.profile-info {
+    font-size: 26px;
+    font-weight: bold;
+}
+
 /* Increase font size of names in pending requests and friends list */
 .user-id {
-    font-size: 18px; /* Increase the font size */
+    font-size: 22px;
+    margin-bottom: 5px;
+    margin-top: 5px;
+}
+
+.search-container {
+    display: flex;
+    align-items: center; /* Center align items vertically */
+    justify-content: center;
+    margin: 0 20px; /* Add space on both sides */
+    flex: 1; /* Allow the container to grow to fill available space */
+    height: 100%; /* Ensure it takes the full height of the parent */
+}
+
+#user-search-form {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 800px; /* Adjust as needed */
+}
+
+#user-search {
+    flex-grow: 1;
+    padding: 8px; /* Adjust padding for consistent height */
+    border: 1px solid #ccc;
+    border-radius: 5px 0 0 5px; /* Rounded corners, only on the left side */
+    font-size: 14px;
+}
+
+#user-search-form button {
+    padding: 8px 15px; /* Adjust padding for consistent height */
+    border: 1px solid #ccc;
+    border-radius: 0 5px 5px 0; /* Rounded corners, only on the right side */
+    background-color: #5cb85c;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#user-search-form button:hover {
+    background-color: #4cae4c;
 }
