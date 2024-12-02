@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 public class MovieService {
-    private static final String TMDB_API_KEY = "81e872ea74c4fe76eed2dd856b47223d";
+    private static final String TMDB_API_KEY = "your_api_key";
     private static final String TMDB_BASE_URL = "https://api.themoviedb.org/3";
 
     private ScalarDBOperations scalarDBOperations;
